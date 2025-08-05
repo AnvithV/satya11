@@ -1,6 +1,6 @@
 # Overview
 
-Final Frontier AI is a comprehensive editorial quality assurance platform that acts as a digital senior editor for content creators. The application provides AI-powered analysis of written content, checking for grammar, clarity, style compliance, bias detection, and fact-checking against trusted sources. It features a modern web interface with document management capabilities, real-time content editing, and detailed analysis reporting.
+Final Frontier AI is a comprehensive multi-agent editorial quality assurance platform that transforms document review through specialized AI agents. The system features five distinct editing stages (Copy Editors, Fact Checkers, Standards & Ethics, Legal Department, and Archivists) that provide targeted analysis with color-coded highlighting. Documents are uploaded without highlighting initially, then users can select specific editing stages to reveal targeted feedback flags that can be dismissed or applied with detailed explanations.
 
 # User Preferences
 
@@ -18,10 +18,10 @@ The client-side application is built using React with TypeScript and follows a m
 - **Build Tool**: Vite for fast development and optimized production builds
 - **Component Library**: Comprehensive shadcn/ui component system with Radix UI primitives
 
-The frontend implements a three-page structure:
-1. Landing page for unauthenticated users
-2. Dashboard/home page for document overview
-3. Editor page with sidebar, main editor, and analysis panel
+The frontend implements a comprehensive multi-agent interface:
+1. Home page with document management, upload functionality, and status tracking
+2. Editor page with three-column layout: editing stages sidebar, document content with selective highlighting, and analysis results panel
+3. Interactive flag system with expandable dropdowns, dismiss/apply actions, and stage-specific color coding
 
 ## Backend Architecture
 The server follows a Node.js Express-based REST API pattern:
@@ -34,16 +34,17 @@ The server follows a Node.js Express-based REST API pattern:
 
 The API structure includes:
 - Authentication routes integrated with Replit Auth
-- Document CRUD operations with user ownership validation
-- AI analysis endpoints for content processing
-- File upload handling for document creation
+- Document CRUD operations with user ownership validation and stage tracking
+- Stage-specific AI analysis endpoints for targeted content processing
+- Flag management routes for dismissing and applying suggested fixes
+- File upload handling with automatic document parsing and content extraction
 
 ## Data Storage Solutions
 The application uses PostgreSQL as the primary database with a well-structured schema:
 
 - **Users Table**: Stores user profiles with Replit Auth integration
-- **Documents Table**: Manages document content, metadata, and status tracking
-- **Analysis Results Table**: Stores AI analysis findings with categorization
+- **Documents Table**: Manages document content, metadata, status tracking, current editing stage, and completed stages array
+- **Analysis Results Table**: Stores stage-specific AI analysis findings with categorization, severity levels, dismissal status, and applied fix tracking
 - **Sessions Table**: Handles user session persistence for authentication
 
 Database operations are handled through Drizzle ORM, providing type safety and migration support. The schema supports both in-memory storage for development and PostgreSQL for production.
@@ -58,15 +59,28 @@ Authentication is handled through Replit's OAuth integration:
 
 The system implements mandatory user operations required for Replit Auth compatibility, including user creation, retrieval, and session management.
 
-## AI Integration Architecture
-The application integrates with OpenAI's GPT-4o model for content analysis:
+## Multi-Agent AI Architecture
+The application implements a sophisticated multi-agent system using OpenAI's GPT-4o model:
 
-- **Service Layer**: Dedicated AI analysis service handling OpenAI API communication
-- **Analysis Types**: Supports critical issues, suggestions, and verified content detection
-- **Response Processing**: Structured analysis results with confidence scoring and categorization
-- **Error Handling**: Robust error handling for API failures and rate limiting
+### Editing Stages & Specialized Agents:
+1. **Copy Editors** (Blue) - Grammar, spelling, style guide compliance, and readability optimization
+2. **Fact Checkers** (Green) - Source verification, factual accuracy, quote validation, and cross-referencing
+3. **Standards & Ethics** (Purple) - Bias detection, inclusivity analysis, sensitivity review, and framing assessment
+4. **Legal Department** (Red) - Defamation risk, privacy violations, copyright compliance, and regulatory review
+5. **Archivists** (Amber) - Historical consistency, cross-reference opportunities, and archive integration
 
-The AI service processes documents through a sophisticated prompt system that analyzes content for editorial quality, factual accuracy, and style compliance.
+### Analysis Processing:
+- **Stage-Specific Prompts**: Each agent uses specialized system prompts tailored to their expertise area
+- **Selective Highlighting**: Flags only appear when specific editing stages are selected
+- **Interactive Flag Management**: Users can expand flags for detailed explanations, dismiss false positives, or apply suggested fixes
+- **Severity Classification**: Issues are categorized as low, medium, high, or critical severity with appropriate visual indicators
+- **Confidence Scoring**: Each analysis result includes confidence levels and specific category classifications
+
+### User Experience Features:
+- **Progressive Disclosure**: Clean document view initially, with targeted highlighting only when specific stages are selected
+- **Color-Coded System**: Each editing stage has distinct colors for immediate visual identification
+- **Expandable Analysis**: Collapsible flag panels with detailed explanations and actionable suggestions
+- **Status Tracking**: Home page shows completion status for each editing stage across all documents
 
 # External Dependencies
 

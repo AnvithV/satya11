@@ -1,231 +1,281 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { Link } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+
 import { 
-  Plus, 
   FileText, 
-  Search, 
-  TrendingUp, 
-  CheckCircle2, 
-  AlertTriangle, 
-  XCircle,
-  Clock,
-  Brain,
-  MoreVertical,
-  BookOpen,
+  Home as HomeIcon, 
+  Upload,
+  PenTool,
+  Search,
   Shield,
   Scale,
   Archive,
-  PenTool
+  Plus,
+  Clock
 } from "lucide-react";
-import type { Document, User } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
-// Import dashboard components
-import CopyEditorDashboard from "@/components/dashboards/CopyEditorDashboard";
-import FactCheckerDashboard from "@/components/dashboards/FactCheckerDashboard";
-import StandardsEthicsDashboard from "@/components/dashboards/StandardsEthicsDashboard";
-import LegalDashboard from "@/components/dashboards/LegalDashboard";
-import ArchivistDashboard from "@/components/dashboards/ArchivistDashboard";
+interface Document {
+  id: string;
+  title: string;
+  content: string;
+  wordCount: number;
+  status: string;
+  currentStage: string;
+  stagesCompleted: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+const stageIcons = {
+  "copy-editors": PenTool,
+  "fact-checkers": Search,
+  "standards-ethics": Shield,
+  "legal": Scale,
+  "archivists": Archive,
+};
+
+const stageColors = {
+  "copy-editors": "bg-blue-50 text-blue-700 border-blue-200",
+  "fact-checkers": "bg-green-50 text-green-700 border-green-200", 
+  "standards-ethics": "bg-purple-50 text-purple-700 border-purple-200",
+  "legal": "bg-red-50 text-red-700 border-red-200",
+  "archivists": "bg-amber-50 text-amber-700 border-amber-200",
+};
 
 export default function Home() {
-  const { user, isLoading, isAuthenticated } = useAuth();
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("copy-editors");
+  const queryClient = useQueryClient();
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
-    }
-  }, [isAuthenticated, isLoading, toast]);
-
-  const { data: documents, isLoading: documentsLoading } = useQuery<Document[]>({
+  const { data: documents = [], isLoading } = useQuery<Document[]>({
     queryKey: ["/api/documents"],
-    enabled: isAuthenticated,
   });
 
-  const typedUser = user as User;
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+    },
+  });
 
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "completed": return "text-green-600 bg-green-100";
-      case "analyzing": return "text-blue-600 bg-blue-100";
-      case "draft": return "text-gray-600 bg-gray-100";
-      case "published": return "text-purple-600 bg-purple-100";
-      default: return "text-gray-600 bg-gray-100";
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      uploadMutation.mutate(file);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "completed": return <CheckCircle2 className="w-4 h-4" />;
-      case "analyzing": return <Brain className="w-4 h-4 animate-pulse" />;
-      case "draft": return <FileText className="w-4 h-4" />;
-      case "published": return <TrendingUp className="w-4 h-4" />;
-      default: return <FileText className="w-4 h-4" />;
-    }
+  const getStageDisplay = (document: Document) => {
+    const Icon = stageIcons[document.currentStage as keyof typeof stageIcons];
+    const colorClass = stageColors[document.currentStage as keyof typeof stageColors];
+    
+    const completedCount = document.stagesCompleted?.length || 0;
+    const totalStages = 5;
+    
+    return {
+      Icon,
+      colorClass,
+      stageName: document.currentStage.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      progress: `${completedCount}/${totalStages} stages complete`
+    };
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <Brain className="text-white text-lg" />
-              </div>
+              <HomeIcon className="w-8 h-8 text-blue-600" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Final Frontier AI</h1>
-                <p className="text-sm text-gray-600">Quality Assurance Platform</p>
+                <p className="text-sm text-gray-600">Editorial Quality Assurance Platform</p>
               </div>
             </div>
-          </div>
-          
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/editor" className="text-gray-600 hover:text-gray-900 transition-colors">
-              Editor
-            </Link>
-            <Link href="/analytics" className="text-gray-600 hover:text-gray-900 transition-colors">
-              Analytics
-            </Link>
-            <Link href="/settings" className="text-gray-600 hover:text-gray-900 transition-colors">
-              Settings
-            </Link>
-          </nav>
-
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3">
-              <img 
-                src={typedUser?.profileImageUrl || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=400"} 
-                alt="User profile" 
-                className="w-8 h-8 rounded-full object-cover"
-                data-testid="img-avatar"
+            
+            <div className="flex items-center space-x-4">
+              <input
+                type="file"
+                accept=".txt,.doc,.docx,.pdf"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="file-upload"
               />
-              <span className="text-sm font-medium text-gray-900" data-testid="text-username">
-                {typedUser?.firstName || typedUser?.email || "User"}
-              </span>
+              <label htmlFor="file-upload">
+                <Button 
+                  asChild
+                  disabled={uploadMutation.isPending}
+                  className="cursor-pointer"
+                >
+                  <span>
+                    <Upload className="w-4 h-4 mr-2" />
+                    {uploadMutation.isPending ? "Uploading..." : "Upload Document"}
+                  </span>
+                </Button>
+              </label>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.href = '/api/logout'}
-              data-testid="button-logout"
-            >
-              Logout
-            </Button>
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Dashboard Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Editorial Dashboard
-            </h1>
-            <p className="text-gray-600">
-              Specialized tools for different editorial teams and workflows
-            </p>
-          </div>
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{documents.length}</p>
+                  <p className="text-sm text-gray-600">Total Documents</p>
+                </div>
+                <FileText className="w-8 h-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
           
-          <Link href="/editor">
-            <Button className="bg-primary hover:bg-blue-700" data-testid="button-new-article">
-              <Plus className="w-4 h-4 mr-2" />
-              New Article
-            </Button>
-          </Link>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {documents.filter(d => d.status === "uploaded").length}
+                  </p>
+                  <p className="text-sm text-gray-600">Ready for Review</p>
+                </div>
+                <Clock className="w-8 h-8 text-amber-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {documents.filter(d => d.status === "completed").length}
+                  </p>
+                  <p className="text-sm text-gray-600">Completed</p>
+                </div>
+                <Shield className="w-8 h-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {documents.reduce((sum, d) => sum + (d.wordCount || 0), 0).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-gray-600">Total Words</p>
+                </div>
+                <PenTool className="w-8 h-8 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Editorial Team Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-lg">
-            <TabsTrigger 
-              value="copy-editors" 
-              className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              data-testid="tab-copy-editors"
-            >
-              <PenTool className="w-4 h-4" />
-              <span className="hidden sm:inline">Copy Editors</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="fact-checkers" 
-              className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              data-testid="tab-fact-checkers"
-            >
-              <Search className="w-4 h-4" />
-              <span className="hidden sm:inline">Fact-Checkers</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="standards-ethics" 
-              className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              data-testid="tab-standards-ethics"
-            >
-              <Shield className="w-4 h-4" />
-              <span className="hidden sm:inline">Standards & Ethics</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="legal" 
-              className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              data-testid="tab-legal"
-            >
-              <Scale className="w-4 h-4" />
-              <span className="hidden sm:inline">Legal</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="archivists" 
-              className="flex items-center space-x-2 data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              data-testid="tab-archivists"
-            >
-              <Archive className="w-4 h-4" />
-              <span className="hidden sm:inline">Archivists</span>
-            </TabsTrigger>
-          </TabsList>
+        {/* Documents Grid */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Recent Documents</h2>
+        </div>
 
-          <TabsContent value="copy-editors" className="space-y-6">
-            <CopyEditorDashboard documents={documents || []} />
-          </TabsContent>
-
-          <TabsContent value="fact-checkers" className="space-y-6">
-            <FactCheckerDashboard documents={documents || []} />
-          </TabsContent>
-
-          <TabsContent value="standards-ethics" className="space-y-6">
-            <StandardsEthicsDashboard documents={documents || []} />
-          </TabsContent>
-
-          <TabsContent value="legal" className="space-y-6">
-            <LegalDashboard documents={documents || []} />
-          </TabsContent>
-
-          <TabsContent value="archivists" className="space-y-6">
-            <ArchivistDashboard documents={documents || []} />
-          </TabsContent>
-        </Tabs>
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardHeader>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                    <div className="h-3 bg-gray-200 rounded w-4/5"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : documents.length === 0 ? (
+          <Card className="p-12 text-center">
+            <div className="flex flex-col items-center space-y-4">
+              <FileText className="w-12 h-12 text-gray-400" />
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">No documents yet</h3>
+                <p className="text-gray-600">Upload your first document to get started with AI-powered editorial review.</p>
+              </div>
+              <label htmlFor="file-upload">
+                <Button asChild className="cursor-pointer">
+                  <span>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Upload Document
+                  </span>
+                </Button>
+              </label>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {documents.map(document => {
+              const stageInfo = getStageDisplay(document);
+              return (
+                <Link key={document.id} href={`/document/${document.id}`}>
+                  <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 group">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg group-hover:text-blue-600 transition-colors">
+                            {document.title}
+                          </CardTitle>
+                          <CardDescription>
+                            {document.wordCount?.toLocaleString()} words • {" "}
+                            {new Date(document.createdAt).toLocaleDateString()}
+                          </CardDescription>
+                        </div>
+                        <stageInfo.Icon className="w-5 h-5 text-gray-400" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-600 line-clamp-2">
+                          {document.content.substring(0, 120)}...
+                        </p>
+                        
+                        <div className="flex items-center justify-between">
+                          <Badge 
+                            variant="outline" 
+                            className={`${stageInfo.colorClass} border`}
+                          >
+                            <stageInfo.Icon className="w-3 h-3 mr-1" />
+                            {stageInfo.stageName}
+                          </Badge>
+                          
+                          <span className="text-xs text-gray-500">
+                            {stageInfo.progress}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,114 @@
+1. Copy Editors → Style & Grammar Module
+Goal: Ensure mechanical accuracy, stylistic consistency, and readability.
+
+Functions:
+
+Grammar & Spelling: Correct typos, punctuation errors, and grammar violations.
+
+Style Guide Enforcement: Apply AP, Chicago, or custom in-house rules (capitalization, numbers, titles, dates, etc.).
+
+Readability Optimization: Score article for clarity (Flesch-Kincaid, Gunning Fog) and recommend rewrites for overly complex sentences.
+
+Flow & Structure Checks: Ensure logical paragraph progression and consistent tone.
+
+AI Techniques:
+
+Fine-tuned LLM for grammar/style rules.
+
+Syntax parsers for structural checks.
+
+Style-rule regex + AI hybrid approach for precision.
+
+2. Fact-Checkers → Fact & Source Verification Module
+Goal: Guarantee that all verifiable claims are accurate and properly sourced.
+
+Functions:
+
+Entity Extraction: Identify all named entities (people, places, organizations, dates).
+
+Cross-Referencing: Match facts against trusted databases (Wikipedia, Reuters, government records, AP archives).
+
+Quote Verification: Check quotes against transcripts, press releases, or recorded material.
+
+Statistics Validation: Compare numerical claims with official statistics databases (World Bank, census data, etc.).
+
+Source Credibility Scoring: Evaluate reliability based on past accuracy, bias ratings, and reputation.
+
+AI Techniques:
+
+Named Entity Recognition (NER).
+
+Retrieval-Augmented Generation (RAG) to pull supporting citations.
+
+Confidence scoring for unverifiable claims.
+
+3. Standards & Ethics Team → Bias & Sensitivity Analysis Module
+Goal: Ensure neutrality, fairness, and inclusivity.
+
+Functions:
+
+Bias Detection: Identify political leaning, emotional tone, and subjective language.
+
+Prejudiced Language Flags: Highlight racial, gender, cultural, or religious bias.
+
+Inclusivity Checks: Recommend neutral terminology for sensitive topics.
+
+Framing Analysis: Detect if the article frames a topic in a way that may influence reader perception unfairly.
+
+Representation Balance: Check for over-reliance on a single perspective or lack of counterpoints.
+
+Headline & Subheading Review: Flag clickbait or misleading titles, ensure they accurately reflect content, and assess for sensationalism or bias in framing.
+
+AI Techniques:
+
+Sentiment analysis + stance detection models.
+
+Political bias classifiers trained on annotated news datasets.
+
+Language inclusivity detection (keyword + semantic models).
+
+4. Legal Department → Legal & Compliance Module
+Goal: Prevent legal risks before publication.
+
+Functions:
+
+Defamation Risk Scan: Flag potentially libelous claims (harmful + unverified statements).
+
+Privacy Violations: Detect sensitive personal data disclosure without consent.
+
+Copyright Compliance: Verify rights for quoted text, images, or embedded media.
+
+Embargo Violation Check: Cross-check publication dates against embargo rules.
+
+Regulatory Compliance: Check for jurisdiction-specific rules (e.g., GDPR for EU audiences).
+
+AI Techniques:
+
+Claim harm assessment using legal-risk NLP models.
+
+Media rights database integration.
+
+Temporal entity matching for embargo rules.
+
+5. Archivists → Historical Consistency Module
+Goal: Maintain continuity and accuracy over time.
+
+Functions:
+
+Cross-Article Fact Matching: Ensure names, dates, and stats match previous coverage.
+
+Contradiction Detection: Flag inconsistencies with prior reporting.
+
+Contextual Enrichment: Suggest related past articles for reference or background sections.
+
+Reused Quote Tracking: Ensure repeated quotes remain accurate and in-context.
+
+Archive Linking: Embed links to past stories for transparency and SEO benefits.
+
+AI Techniques:
+
+Semantic search over internal archives.
+
+Contradiction detection models (natural language inference).
+
+Historical entity tracking for long-running stories.

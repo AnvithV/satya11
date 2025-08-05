@@ -42,7 +42,9 @@ export const documents = pgTable("documents", {
   content: text("content").notNull(),
   userId: varchar("user_id").notNull().references(() => users.id),
   wordCount: integer("word_count").default(0),
-  status: varchar("status").notNull().default("draft"), // draft, analyzing, completed, published
+  status: varchar("status").notNull().default("uploaded"), // uploaded, copy-editing, fact-checking, ethics-review, legal-review, archival-review, completed, published
+  currentStage: varchar("current_stage").default("copy-editors"), // copy-editors, fact-checkers, standards-ethics, legal, archivists
+  stagesCompleted: text("stages_completed").array().default(sql`'{}'::text[]`),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -50,14 +52,18 @@ export const documents = pgTable("documents", {
 export const analysisResults = pgTable("analysis_results", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   documentId: varchar("document_id").notNull().references(() => documents.id),
-  type: varchar("type").notNull(), // critical, suggestion, verified, style
-  category: varchar("category").notNull(), // grammar, fact-check, tone, style-guide, etc.
+  editingStage: varchar("editing_stage").notNull(), // copy-editors, fact-checkers, standards-ethics, legal, archivists
+  type: varchar("type").notNull(), // critical, suggestion, verified, style, warning
+  category: varchar("category").notNull(), // grammar, fact-check, tone, style-guide, bias, legal-risk, etc.
   message: text("message").notNull(),
   suggestion: text("suggestion"),
   startIndex: integer("start_index").notNull(),
   endIndex: integer("end_index").notNull(),
   confidence: integer("confidence").default(0), // 0-100
+  severity: varchar("severity").default("medium"), // low, medium, high, critical
   isResolved: boolean("is_resolved").default(false),
+  isDismissed: boolean("is_dismissed").default(false),
+  appliedFix: boolean("applied_fix").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

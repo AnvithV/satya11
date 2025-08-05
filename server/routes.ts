@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { analyzeDocument, checkFactualClaim } from "./services/aiAnalysis";
+import { analyzeDocument, analyzeDocumentByStage, checkFactualClaim, editingStages, type EditingStage } from "./services/aiAnalysis";
 import { insertDocumentSchema, insertAnalysisResultSchema } from "@shared/schema";
 import multer from "multer";
 
@@ -151,7 +151,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Analysis routes
+  // Get editing stages info
+  app.get("/api/editing-stages", (req, res) => {
+    res.json(editingStages);
+  });
+
+  // Analysis routes - new stage-specific route
+  app.post("/api/documents/:id/analyze/:stage", isAuthenticated, async (req: any, res) => {
+    try {
+      const { stage } = req.params;
+      const document = await storage.getDocument(req.params.id);
+      
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+      
+      // Check if user owns the document
+      const userId = req.user.claims.sub;
+      if (document.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Validate editing stage
+      if (!editingStages[stage as EditingStage]) {
+        return res.status(400).json({ message: "Invalid editing stage" });
+      }
+
+      // Update document status and current stage
+      await storage.updateDocument(req.params.id, { 
+        status: `${stage}-reviewing`,
+        currentStage: stage
+      });
+
+      // Clear existing analysis results for this stage
+      await storage.deleteAnalysisResultsByStage(req.params.id, stage);
+
+      // Perform AI analysis for specific stage
+      const analysis = await analyzeDocumentByStage({
+        content: document.content,
+        title: document.title,
+        documentId: document.id,
+        editingStage: stage as EditingStage,
+      });
+
+      // Save analysis results
+      for (const result of analysis.results) {
+        await storage.createAnalysisResult({
+          ...result,
+          documentId: document.id,
+          editingStage: stage
+        });
+      }
+
+      // Update document status to completed for this stage
+      const completedStages = document.stagesCompleted || [];
+      if (!completedStages.includes(stage)) {
+        completedStages.push(stage);
+      }
+      
+      await storage.updateDocument(req.params.id, { 
+        status: "uploaded",
+        stagesCompleted: completedStages
+      });
+
+      res.json({
+        summary: analysis.summary,
+        confidence: analysis.confidence,
+        stage: stage,
+        completedStages: completedStages
+      });
+    } catch (error) {
+      console.error("Error analyzing document:", error);
+      await storage.updateDocument(req.params.id, { status: "uploaded" });
+      res.status(500).json({ message: "Failed to analyze document" });
+    }
+  });
+
+  // Legacy analysis route (for backward compatibility)
   app.post("/api/documents/:id/analyze", isAuthenticated, async (req: any, res) => {
     try {
       const document = await storage.getDocument(req.params.id);
@@ -166,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update document status to analyzing
-      await storage.updateDocument(req.params.id, { status: "analyzing" });
+      await storage.updateDocument(req.params.id, { status: "copy-editing" });
 
       // Clear existing analysis results
       await storage.deleteAnalysisResults(req.params.id);
@@ -196,13 +272,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error analyzing document:", error);
       // Update document status back to draft on error
-      await storage.updateDocument(req.params.id, { status: "draft" });
+      await storage.updateDocument(req.params.id, { status: "uploaded" });
       res.status(500).json({ message: "Failed to analyze document" });
     }
   });
 
   app.get("/api/documents/:id/analysis", isAuthenticated, async (req: any, res) => {
     try {
+      const { stage } = req.query;
       const document = await storage.getDocument(req.params.id);
       if (!document) {
         return res.status(404).json({ message: "Document not found" });
@@ -214,11 +291,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      const results = await storage.getDocumentAnalysis(req.params.id);
+      const results = await storage.getDocumentAnalysis(req.params.id, stage as string);
       res.json(results);
     } catch (error) {
       console.error("Error fetching analysis:", error);
       res.status(500).json({ message: "Failed to fetch analysis" });
+    }
+  });
+
+  app.put("/api/analysis/:id/dismiss", isAuthenticated, async (req: any, res) => {
+    try {
+      const updatedResult = await storage.dismissAnalysisResult(req.params.id);
+      res.json(updatedResult);
+    } catch (error) {
+      console.error("Error dismissing analysis result:", error);
+      res.status(500).json({ message: "Failed to dismiss flag" });
+    }
+  });
+
+  app.put("/api/analysis/:id/apply-fix", isAuthenticated, async (req: any, res) => {
+    try {
+      const updatedResult = await storage.applyAnalysisResultFix(req.params.id);
+      res.json(updatedResult);
+    } catch (error) {
+      console.error("Error applying fix:", error);
+      res.status(500).json({ message: "Failed to apply fix" });
     }
   });
 

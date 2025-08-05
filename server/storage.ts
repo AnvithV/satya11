@@ -26,9 +26,12 @@ export interface IStorage {
   
   // Analysis operations
   createAnalysisResult(result: InsertAnalysisResult): Promise<AnalysisResult>;
-  getDocumentAnalysis(documentId: string): Promise<AnalysisResult[]>;
+  getDocumentAnalysis(documentId: string, editingStage?: string): Promise<AnalysisResult[]>;
   updateAnalysisResult(id: string, updates: Partial<InsertAnalysisResult>): Promise<AnalysisResult>;
   deleteAnalysisResults(documentId: string): Promise<boolean>;
+  deleteAnalysisResultsByStage(documentId: string, editingStage: string): Promise<boolean>;
+  dismissAnalysisResult(id: string): Promise<AnalysisResult>;
+  applyAnalysisResultFix(id: string): Promise<AnalysisResult>;
 }
 
 export class MemStorage implements IStorage {
@@ -66,8 +69,10 @@ export class MemStorage implements IStorage {
     const document: Document = {
       ...documentData,
       id,
-      status: documentData.status || "draft",
+      status: documentData.status || "uploaded",
       wordCount: documentData.wordCount || 0,
+      currentStage: documentData.currentStage || "copy-editors",
+      stagesCompleted: documentData.stagesCompleted || [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -120,7 +125,10 @@ export class MemStorage implements IStorage {
       id,
       suggestion: resultData.suggestion || null,
       confidence: resultData.confidence || 0,
+      severity: resultData.severity || "medium",
       isResolved: resultData.isResolved || false,
+      isDismissed: resultData.isDismissed || false,
+      appliedFix: resultData.appliedFix || false,
       createdAt: new Date(),
     };
     
@@ -128,9 +136,13 @@ export class MemStorage implements IStorage {
     return result;
   }
 
-  async getDocumentAnalysis(documentId: string): Promise<AnalysisResult[]> {
+  async getDocumentAnalysis(documentId: string, editingStage?: string): Promise<AnalysisResult[]> {
     return Array.from(this.analysisResults.values())
-      .filter(result => result.documentId === documentId)
+      .filter(result => {
+        if (result.documentId !== documentId) return false;
+        if (editingStage && result.editingStage !== editingStage) return false;
+        return !result.isDismissed; // Don't return dismissed results
+      })
       .sort((a, b) => a.startIndex - b.startIndex);
   }
 
@@ -155,6 +167,45 @@ export class MemStorage implements IStorage {
     
     results.forEach(result => this.analysisResults.delete(result.id));
     return true;
+  }
+
+  async deleteAnalysisResultsByStage(documentId: string, editingStage: string): Promise<boolean> {
+    const results = Array.from(this.analysisResults.values())
+      .filter(result => result.documentId === documentId && result.editingStage === editingStage);
+    
+    results.forEach(result => this.analysisResults.delete(result.id));
+    return true;
+  }
+
+  async dismissAnalysisResult(id: string): Promise<AnalysisResult> {
+    const existing = this.analysisResults.get(id);
+    if (!existing) {
+      throw new Error("Analysis result not found");
+    }
+    
+    const updated: AnalysisResult = {
+      ...existing,
+      isDismissed: true,
+    };
+    
+    this.analysisResults.set(id, updated);
+    return updated;
+  }
+
+  async applyAnalysisResultFix(id: string): Promise<AnalysisResult> {
+    const existing = this.analysisResults.get(id);
+    if (!existing) {
+      throw new Error("Analysis result not found");
+    }
+    
+    const updated: AnalysisResult = {
+      ...existing,
+      appliedFix: true,
+      isResolved: true,
+    };
+    
+    this.analysisResults.set(id, updated);
+    return updated;
   }
 }
 
