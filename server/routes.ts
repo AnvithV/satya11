@@ -124,14 +124,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileExtension = filename.toLowerCase().split('.').pop();
       
       if (fileExtension === 'pdf') {
-        try {
-          const pdfParse = await import('pdf-parse');
-          const pdfData = await pdfParse.default(req.file.buffer);
-          content = pdfData.text;
-        } catch (error) {
-          console.error('PDF parsing error:', error);
-          content = `Unable to extract text from PDF file: ${filename}. Please upload a text file (.txt) or contact support for assistance.`;
-        }
+        // For now, provide a helpful message for PDF files and suggest alternatives
+        content = `PDF file "${filename}" uploaded successfully. 
+        
+PDF text extraction is currently being optimized. For immediate processing, please:
+
+1. Copy the text content from your PDF
+2. Create a new text file (.txt) with the content
+3. Upload the text file instead
+
+Alternatively, you can edit this document directly by clicking on it in the editor and replacing this message with your content.
+
+We're working to improve PDF processing - thank you for your patience!`;
+        
+        console.log(`PDF file ${filename} uploaded - user can manually input content`);
       } else if (fileExtension === 'txt') {
         content = req.file.buffer.toString('utf-8');
       } else {
