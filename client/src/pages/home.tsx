@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 import { 
   FileText, 
@@ -15,7 +17,9 @@ import {
   Scale,
   Archive,
   Plus,
-  Clock
+  Clock,
+  Tag,
+  X
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -27,6 +31,7 @@ interface Document {
   status: string;
   currentStage: string;
   stagesCompleted: string[];
+  tags: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -49,6 +54,9 @@ const stageColors = {
 
 export default function Home() {
   const queryClient = useQueryClient();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [newTag, setNewTag] = useState("");
+  const [selectedDocumentForTags, setSelectedDocumentForTags] = useState<Document | null>(null);
 
   const { data: documents = [], isLoading, error } = useQuery<Document[]>({
     queryKey: ["/api/documents"],
@@ -87,6 +95,17 @@ export default function Home() {
     },
   });
 
+  const updateTagsMutation = useMutation({
+    mutationFn: async ({ documentId, tags }: { documentId: string; tags: string[] }) => {
+      return apiRequest(`/api/documents/${documentId}/tags`, 'PUT', { tags });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      setSelectedDocumentForTags(null);
+      setNewTag("");
+    },
+  });
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -107,6 +126,29 @@ export default function Home() {
       stageName: document.currentStage.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
       progress: `${completedCount}/${totalStages} stages complete`
     };
+  };
+
+  const handleAddTag = () => {
+    if (newTag.trim() && selectedDocumentForTags) {
+      const currentTags = selectedDocumentForTags.tags || [];
+      if (!currentTags.includes(newTag.trim())) {
+        const updatedTags = [...currentTags, newTag.trim()];
+        updateTagsMutation.mutate({ 
+          documentId: selectedDocumentForTags.id, 
+          tags: updatedTags 
+        });
+      }
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    if (selectedDocumentForTags) {
+      const updatedTags = (selectedDocumentForTags.tags || []).filter(tag => tag !== tagToRemove);
+      updateTagsMutation.mutate({ 
+        documentId: selectedDocumentForTags.id, 
+        tags: updatedTags 
+      });
+    }
   };
 
   // Handle authentication redirect
@@ -143,7 +185,7 @@ export default function Home() {
             <div className="flex items-center space-x-3">
               <HomeIcon className="w-8 h-8 text-blue-600" />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Final Frontier AI</h1>
+                <h1 className="text-xl font-bold text-gray-900">Satya</h1>
                 <p className="text-sm text-gray-600">Editorial Quality Assurance Platform</p>
               </div>
             </div>

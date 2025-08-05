@@ -165,7 +165,7 @@ export default function DocumentEditor({
       <div className="flex-1 flex items-center justify-center bg-white">
         <div className="text-center max-w-md">
           <Brain className="mx-auto h-16 w-16 text-gray-400 mb-6" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to Final Frontier AI</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to Satya</h2>
           <p className="text-gray-600 mb-6">
             Select a document from the sidebar or create a new one to start your AI-powered editorial review.
           </p>

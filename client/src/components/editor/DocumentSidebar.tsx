@@ -76,7 +76,7 @@ export default function DocumentSidebar({
               <Brain className="text-white text-sm" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">Final Frontier</h1>
+              <h1 className="text-lg font-bold text-gray-900">Satya</h1>
               <p className="text-xs text-gray-600">Editorial AI</p>
             </div>
           </div>

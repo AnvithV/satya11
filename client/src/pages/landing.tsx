@@ -14,7 +14,7 @@ export default function Landing() {
               <Brain className="text-white text-lg" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Final Frontier AI</h1>
+              <h1 className="text-xl font-bold text-gray-900">Satya</h1>
               <p className="text-sm text-gray-600">Quality Assurance Platform</p>
             </div>
           </div>
@@ -43,7 +43,7 @@ export default function Landing() {
           </h1>
           
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Final Frontier AI acts as your digital senior editor, automatically reviewing articles for 
+            Satya acts as your digital senior editor, automatically reviewing articles for 
             grammar, clarity, style compliance, bias detection, and fact-checking against trusted sources.
           </p>
           

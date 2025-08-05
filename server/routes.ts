@@ -116,9 +116,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const userId = "demo-user";
-      const content = req.file.buffer.toString('utf-8');
       const filename = req.file.originalname;
       const title = filename.replace(/\.[^/.]+$/, ""); // Remove extension
+      
+      // Extract text content based on file type
+      let content = '';
+      const fileExtension = filename.toLowerCase().split('.').pop();
+      
+      if (fileExtension === 'pdf') {
+        try {
+          const pdfParse = await import('pdf-parse');
+          const pdfData = await pdfParse.default(req.file.buffer);
+          content = pdfData.text;
+        } catch (error) {
+          console.error('PDF parsing error:', error);
+          content = `Unable to extract text from PDF file: ${filename}. Please upload a text file (.txt) or contact support for assistance.`;
+        }
+      } else if (fileExtension === 'txt') {
+        content = req.file.buffer.toString('utf-8');
+      } else {
+        // For other file types, provide a helpful error message
+        content = `File type .${fileExtension} is not supported. Please upload a text file (.txt) or PDF file (.pdf) for analysis.`;
+      }
 
       const documentData = insertDocumentSchema.parse({
         title,
@@ -127,7 +146,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         wordCount: content.split(/\s+/).length,
         status: "uploaded",
         currentStage: "copy-editors",
-        stagesCompleted: []
+        stagesCompleted: [],
+        tags: [] // Initialize with empty tags array
       });
       
       const document = await storage.createDocument(documentData);
@@ -315,6 +335,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fact-checking:", error);
       res.status(500).json({ message: "Failed to fact-check claim" });
+    }
+  });
+
+  // Document tags management
+  app.put("/api/documents/:id/tags", async (req: any, res) => {
+    try {
+      const { tags } = req.body;
+      const document = await storage.getDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+      
+      // Skip ownership check for demo
+      const updatedDocument = await storage.updateDocument(req.params.id, { tags });
+      res.json(updatedDocument);
+    } catch (error) {
+      console.error("Error updating document tags:", error);
+      res.status(500).json({ message: "Failed to update tags" });
     }
   });
 

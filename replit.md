@@ -1,6 +1,6 @@
 # Overview
 
-Final Frontier AI is a comprehensive multi-agent editorial quality assurance platform that transforms document review through specialized AI agents. The system features five distinct editing stages (Copy Editors, Fact Checkers, Standards & Ethics, Legal Department, and Archivists) that provide targeted analysis with color-coded highlighting. Documents are uploaded without highlighting initially, then users can select specific editing stages to reveal targeted feedback flags that can be dismissed or applied with detailed explanations.
+Satya is a comprehensive multi-agent editorial quality assurance platform that transforms document review through specialized AI agents. The system features five distinct editing stages (Copy Editors, Fact Checkers, Standards & Ethics, Legal Department, and Archivists) that provide targeted analysis with color-coded highlighting. Documents are uploaded without highlighting initially, then users can select specific editing stages to reveal targeted feedback flags that can be dismissed or applied with detailed explanations.
 
 # User Preferences
 

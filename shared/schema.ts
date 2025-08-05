@@ -45,6 +45,7 @@ export const documents = pgTable("documents", {
   status: varchar("status").notNull().default("uploaded"), // uploaded, copy-editing, fact-checking, ethics-review, legal-review, archival-review, completed, published
   currentStage: varchar("current_stage").default("copy-editors"), // copy-editors, fact-checkers, standards-ethics, legal, archivists
   stagesCompleted: text("stages_completed").array().default(sql`'{}'::text[]`),
+  tags: text("tags").array().default(sql`'{}'::text[]`), // Tags for access control and organization
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

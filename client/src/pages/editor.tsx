@@ -108,15 +108,12 @@ export default function Editor() {
 
   const { data: analysisResults = [], refetch: refetchAnalysis } = useQuery<AnalysisResult[]>({
     queryKey: [`/api/documents/${id}/analysis`, selectedStage],
-    queryFn: () => apiRequest(`/api/documents/${id}/analysis?stage=${selectedStage || ''}`),
     enabled: !!id && !!selectedStage,
   });
 
   const analyzeMutation = useMutation({
     mutationFn: async (stage: string) => {
-      return apiRequest(`/api/documents/${id}/analyze/${stage}`, {
-        method: 'POST',
-      });
+      return apiRequest(`/api/documents/${id}/analyze/${stage}`, 'POST');
     },
     onSuccess: () => {
       refetchAnalysis();
@@ -126,9 +123,7 @@ export default function Editor() {
 
   const dismissMutation = useMutation({
     mutationFn: async (resultId: string) => {
-      return apiRequest(`/api/analysis/${resultId}/dismiss`, {
-        method: 'PUT',
-      });
+      return apiRequest(`/api/analysis/${resultId}/dismiss`, 'PUT');
     },
     onSuccess: () => {
       refetchAnalysis();
@@ -137,9 +132,7 @@ export default function Editor() {
 
   const applyFixMutation = useMutation({
     mutationFn: async (resultId: string) => {
-      return apiRequest(`/api/analysis/${resultId}/apply-fix`, {
-        method: 'PUT',
-      });
+      return apiRequest(`/api/analysis/${resultId}/apply-fix`, 'PUT');
     },
     onSuccess: () => {
       refetchAnalysis();
