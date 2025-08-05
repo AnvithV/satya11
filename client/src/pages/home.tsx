@@ -50,8 +50,16 @@ const stageColors = {
 export default function Home() {
   const queryClient = useQueryClient();
 
-  const { data: documents = [], isLoading } = useQuery<Document[]>({
+  const { data: documents = [], isLoading, error } = useQuery<Document[]>({
     queryKey: ["/api/documents"],
+    retry: (failureCount, error: any) => {
+      // Don't retry if it's an auth error
+      if (error?.status === 401) {
+        window.location.href = '/api/login';
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 
   const uploadMutation = useMutation({
@@ -62,6 +70,16 @@ export default function Home() {
         method: 'POST',
         body: formData,
       });
+      
+      if (response.status === 401) {
+        window.location.href = '/api/login';
+        throw new Error('Authentication required');
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
+      
       return response.json();
     },
     onSuccess: () => {
@@ -90,6 +108,31 @@ export default function Home() {
       progress: `${completedCount}/${totalStages} stages complete`
     };
   };
+
+  // Handle authentication redirect
+  if (error && (error as any)?.status === 401) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Authentication required</p>
+          <Button onClick={() => window.location.href = '/api/login'}>
+            Sign In with Replit
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading documents...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

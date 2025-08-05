@@ -90,9 +90,16 @@ export default function Editor() {
   const [expandedFlags, setExpandedFlags] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
-  const { data: document, isLoading: documentLoading } = useQuery<Document>({
+  const { data: document, isLoading: documentLoading, error: documentError } = useQuery<Document>({
     queryKey: [`/api/documents/${id}`],
     enabled: !!id,
+    retry: (failureCount, error: any) => {
+      if (error?.status === 401) {
+        window.location.href = '/api/login';
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 
   const { data: editingStages = {} } = useQuery<Record<string, EditingStage>>({
@@ -202,6 +209,20 @@ export default function Editor() {
     }
     setExpandedFlags(newExpanded);
   };
+
+  // Handle authentication redirect
+  if (documentError && (documentError as any)?.status === 401) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Authentication required</p>
+          <Button onClick={() => window.location.href = '/api/login'}>
+            Sign In with Replit
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (documentLoading) {
     return (
